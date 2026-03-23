@@ -214,7 +214,7 @@ const Home = ({ settings, whiskeys, posts, setPage, setSW, setSB }) => {
         <div className="sh"><div><h2>Our Top Picks</h2><p>Latest expert-reviewed selections</p></div><button className="btn btn-s btn-sm" onClick={()=>setPage("database")}>View All →</button></div>
         <div className="wg">{top.map((w,i)=>{
           const ps=calcAvgScore(w.proReviews);const as=calcAvgScore(w.audienceReviews);
-          return(<div key={w._id} className="cd wc anim" style={{animationDelay:`${i*.08}s`}} onClick={()=>{setSW(w);setPage("detail");}}>
+          return(<div key={w._id} className="cd wc anim" style={{animationDelay:`${i*.08}s`}} onClick={()=>setSW(w)}>
             <div className="wci" style={{backgroundImage:`url(${sanImg(w.image,600)})`}}>
               <div className="wcs">{ps&&<div className="sb sp"><span className="sl-b">PRO</span> {ps}</div>}{as&&<div className="sb sa"><span className="sl-b">AUD</span> {as}</div>}</div>
             </div>
@@ -226,7 +226,7 @@ const Home = ({ settings, whiskeys, posts, setPage, setSW, setSB }) => {
         <div className="sd"><span>From the Blog</span></div>
         <div className="sh"><div><h2>Latest Reviews</h2><p>Deep dives, tasting notes, and whiskey culture</p></div><button className="btn btn-s btn-sm" onClick={()=>setPage("blog")}>All Posts →</button></div>
         <div className="bg">{recent.map((p,i)=>(
-          <div key={p._id} className="cd bc anim" style={{animationDelay:`${i*.08}s`}} onClick={()=>{setSB(p);setPage("blogdet");}}>
+          <div key={p._id} className="cd bc anim" style={{animationDelay:`${i*.08}s`}} onClick={()=>setSB(p)}>
             <div className="bci" style={{backgroundImage:`url(${sanImg(p.heroImage,800)})`}}/>
             <div className="bcb">
               <div className="bcd">{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : ''}</div>
@@ -265,7 +265,7 @@ const Database = ({ whiskeys, setPage, setSW }) => {
     <div className="sbar"><input className="sinp" placeholder="Search by name, type, or region..." value={q} onChange={e=>setQ(e.target.value)}/><button className={`fb ${tf==="all"?"a":""}`} onClick={()=>setTf("all")}>All</button>{types.map(t=><button key={t} className={`fb ${tf===t?"a":""}`} onClick={()=>setTf(t)}>{t}</button>)}</div>
     <div className="wg">{fil.map((w,i)=>{
       const ps=calcAvgScore(w.proReviews);const as=calcAvgScore(w.audienceReviews);
-      return(<div key={w._id} className="cd wc anim" style={{animationDelay:`${i*.04}s`}} onClick={()=>{setSW(w);setPage("detail");}}>
+      return(<div key={w._id} className="cd wc anim" style={{animationDelay:`${i*.04}s`}} onClick={()=>setSW(w)}>
         <div className="wci" style={{backgroundImage:`url(${sanImg(w.image,600)})`}}>
           <div className="wcs">
             {ps!==null&&<div className="sb sp"><span className="sl-b">PRO</span> {ps}</div>}
@@ -363,7 +363,7 @@ const Blog = ({ posts, setPage, setSB }) => (
   <div className="pg"><div className="sd"><span>The Blog</span></div><div className="sh"><div><h2>Reviews & Stories</h2><p>Expert reviews, tasting notes, and whiskey culture</p></div></div>
   {(posts||[]).length===0?<div className="em"><div className="emi">📝</div><h3>No posts yet</h3><p>Add blog posts in Sanity Studio</p></div>:
   <div className="bg">{(posts||[]).map((p,i)=>(
-    <div key={p._id} className="cd bc anim" style={{animationDelay:`${i*.06}s`}} onClick={()=>{setSB(p);setPage("blogdet");}}>
+    <div key={p._id} className="cd bc anim" style={{animationDelay:`${i*.06}s`}} onClick={()=>setSB(p)}>
       <div className="bci" style={{backgroundImage:`url(${sanImg(p.heroImage,800)})`}}/>
       <div className="bcb"><div className="bcd">{p.publishedAt?new Date(p.publishedAt).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):''}</div><h3>{p.title}</h3><p>{p.excerpt}</p></div>
       <div className="bcf"><div className="bca">{p.authorAvatar?<img src={sanImg(p.authorAvatar,60)} alt=""/>:"👤"}</div><span className="bcn">{p.authorName}</span>{p.authorIsPro&&<span className="pb" style={{marginLeft:'auto'}}>PRO</span>}</div>
@@ -427,7 +427,7 @@ const BlogDet = ({ post, setPage, setSW, whiskeys }) => {
         </div>
         <div style={{display:'flex',gap:12,alignItems:'center'}}>
           {fw.proScore&&<div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:scoreColor(fw.proScore)}}>{Math.round(fw.proScore)}</div>}
-          <button className="btn btn-s btn-sm" onClick={()=>{const match=(whiskeys||[]).find(x=>x._id===fw._id);if(match){setSW(match);setPage("detail");}}}>View Review →</button>
+          <button className="btn btn-s btn-sm" onClick={()=>{const match=(whiskeys||[]).find(x=>x._id===fw._id);if(match)setSW(match);}}>View Review →</button>
         </div>
       </div>
     </div>}
