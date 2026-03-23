@@ -361,7 +361,7 @@ const Detail = ({ whiskey: w, setPage }) => {
 
 // ─── Blog ───
 const Blog = ({ posts, setPage, setSB }) => (
-  <div className="pg"><div className="sd"><span>The Blog</span></div><div className="sh"><div><h2>Reviews & Stories</h2><p>Expert reviews, tasting notes, and whiskey culture</p></div></div>
+  <div className="pg"><div className="sd"><span>The Blog</span></div><div className="sh"><div><h2>Blog Posts & News</h2><p> Commentary, news and opinions about everything having to do with whiskey culture</p></div></div>
   {(posts||[]).length===0?<div className="em"><div className="emi">📝</div><h3>No posts yet</h3><p>Add blog posts in Sanity Studio</p></div>:
   <div className="bg">{(posts||[]).map((p,i)=>(
     <div key={p._id} className="cd bc anim" style={{animationDelay:`${i*.06}s`}} onClick={()=>setSB(p)}>
