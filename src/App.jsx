@@ -127,7 +127,8 @@ const CSS = `
 .bdi{background:var(--bg3);border-radius:8px;padding:10px;text-align:center}
 .bdl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
 .bds{font-size:18px;font-weight:600;margin-top:2px}.bdm{font-size:10px;color:var(--t3)}
-.rn{font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.6;color:var(--t2);font-style:italic;border-left:2px solid var(--purpD);padding-left:16px}
+.rn{font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.8;color:var(--t2);font-style:italic;border-left:2px solid var(--purpD);padding-left:20px;padding-top:4px;padding-bottom:4px}
+.rn p{margin-bottom:14px}.rn p:last-child{margin-bottom:0}
 
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--brd);margin-bottom:32px}
 .tab{padding:12px 20px;background:none;border:none;color:var(--t2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr)}
@@ -313,7 +314,7 @@ const Detail = ({ whiskey: w, setPage }) => {
       <div><div className="prn">{review.reviewerName||"Anonymous"}</div>{isPro?<span className="pb">NPS Pro Reviewer</span>:<span style={{fontSize:11,color:'var(--t3)'}}>{review._createdAt?new Date(review._createdAt).toLocaleDateString():''}</span>}</div>
     </div><div className="prs" style={{color:scoreColor(t)}}>{t}<span>/100</span></div></div>
     <div className="bd">{[["Aroma",review.aroma,15],["Palate",review.palate,45],["Finish",review.finish,20],["Style",review.style,10],["Value",review.value,10]].map(([l,v,m])=><div className="bdi" key={l}><div className="bdl">{l}</div><div className="bds">{v}</div><div className="bdm">/{m}</div></div>)}</div>
-    {review.notes&&<div className="rn">"{review.notes}"</div>}</div>
+    {review.notes&&<div className="rn">{review.notes.split('\n').filter(p=>p.trim()).map((para,i)=><p key={i} style={{marginBottom:12}}>{i===0?'"':''}{para}{i===review.notes.split('\n').filter(p=>p.trim()).length-1?'"':''}</p>)}</div>}</div>
   );};
   return(<div className="pg">
     <button className="btn btn-s btn-sm" onClick={()=>setPage("database")} style={{marginBottom:24}}>← Back to Database</button>
