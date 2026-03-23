@@ -127,8 +127,8 @@ const CSS = `
 .bdi{background:var(--bg3);border-radius:8px;padding:10px;text-align:center}
 .bdl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
 .bds{font-size:18px;font-weight:600;margin-top:2px}.bdm{font-size:10px;color:var(--t3)}
-.rn{font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.8;color:var(--t2);font-style:italic;border-left:2px solid var(--purpD);padding-left:20px;padding-top:4px;padding-bottom:4px}
-.rn p{margin-bottom:14px}.rn p:last-child{margin-bottom:0}
+.rn{font-family:'Outfit',sans-serif;font-size:15px;line-height:2;color:#c8c3bb;font-style:normal;border-left:3px solid var(--purpD);padding-left:24px;padding-top:4px;padding-bottom:4px}
+.rn p{margin-bottom:16px}.rn p:last-child{margin-bottom:0}
 
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--brd);margin-bottom:32px}
 .tab{padding:12px 20px;background:none;border:none;color:var(--t2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr)}
