@@ -195,7 +195,8 @@ const Home = ({ settings, whiskeys, posts, setPage, setSW, setSB }) => {
       <div className="hero-c">
         <img src={logoSrc} alt="Noble Palate Society" className="hero-logo"/>
         <div className="hero-m">{settings?.motto || "Sapientia Per Sensus"}</div>
-        <h1>The Art of <em>Whiskey</em>,<br/><span className="pu">Elevated</span></h1>
+        <h1>{settings?.heroTitle || <>The Art of <em>Whiskey</em>,<br/><span className="pu">Elevated</span></>}</h1>
+        {settings?.tagline && <div style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:500,color:'var(--gold)',letterSpacing:2,marginBottom:16}}>{settings.tagline}</div>}
         <p>{settings?.heroSubtitle || "Expert reviews, curated tastings, and a community of connoisseurs."}</p>
         <div className="hero-act">
           <button className="btn btn-p" onClick={()=>setPage("database")}>Explore Database</button>
