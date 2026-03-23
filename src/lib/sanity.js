@@ -4,9 +4,19 @@ import imageUrlBuilder from '@sanity/image-url'
 export const client = createClient({
   projectId: 'utqvc7uf',
   dataset: 'production',
-  useCdn: true,
+  useCdn: false,
   apiVersion: '2026-03-22',
 })
+
+// Write client for submitting audience reviews
+const writeToken = typeof import.meta !== 'undefined' ? import.meta.env.VITE_SANITY_WRITE_TOKEN : null;
+export const writeClient = writeToken ? createClient({
+  projectId: 'utqvc7uf',
+  dataset: 'production',
+  useCdn: false,
+  apiVersion: '2026-03-22',
+  token: writeToken,
+}) : null;
 
 const builder = imageUrlBuilder(client)
 
@@ -54,15 +64,9 @@ export const QUERIES = {
       "reviewerSlug": reviewer->slug
     },
     "audienceReviews": *[_type == "review" && whiskey._ref == ^._id && reviewer->isPro != true]{
-      _id,
-      aroma,
-      palate,
-      finish,
-      style,
-      value,
-      notes,
-      _createdAt,
-      "reviewerName": reviewer->name
+      _id, aroma, palate, finish, style, value, notes, _createdAt, "reviewerName": reviewer->name
+    } + *[_type == "pendingReview" && whiskey._ref == ^._id && approved == true]{
+      _id, aroma, palate, finish, style, value, notes, "reviewerName": reviewerName, "_createdAt": submittedAt
     }
   }`,
 
@@ -90,15 +94,9 @@ export const QUERIES = {
       "reviewerAvatar": reviewer->avatar
     },
     "audienceReviews": *[_type == "review" && whiskey._ref == ^._id && reviewer->isPro != true]{
-      _id,
-      aroma,
-      palate,
-      finish,
-      style,
-      value,
-      notes,
-      _createdAt,
-      "reviewerName": reviewer->name
+      _id, aroma, palate, finish, style, value, notes, _createdAt, "reviewerName": reviewer->name
+    } + *[_type == "pendingReview" && whiskey._ref == ^._id && approved == true]{
+      _id, aroma, palate, finish, style, value, notes, "reviewerName": reviewerName, "_createdAt": submittedAt
     }
   }`,
 
@@ -179,4 +177,32 @@ export function scoreColor(s) {
 export function scoreLabel(s) {
   if (!s) return 'Not Reviewed'
   return s >= 95 ? 'Masterpiece' : s >= 90 ? 'Exceptional' : s >= 85 ? 'Excellent' : s >= 80 ? 'Very Good' : s >= 75 ? 'Good' : s >= 70 ? 'Above Average' : 'Average'
+}
+
+// Submit an audience review (pending approval)
+export async function submitAudienceReview({ whiskeyId, name, email, aroma, palate, finish, style, value, notes }) {
+  if (!writeClient) {
+    console.error('Write client not configured')
+    return { success: false, error: 'Review submission is not available right now.' }
+  }
+  try {
+    await writeClient.create({
+      _type: 'pendingReview',
+      whiskey: { _type: 'reference', _ref: whiskeyId },
+      reviewerName: name,
+      reviewerEmail: email,
+      aroma,
+      palate,
+      finish,
+      style,
+      value,
+      notes,
+      approved: false,
+      submittedAt: new Date().toISOString(),
+    })
+    return { success: true }
+  } catch (err) {
+    console.error('Submit review error:', err)
+    return { success: false, error: 'Failed to submit review. Please try again.' }
+  }
 }

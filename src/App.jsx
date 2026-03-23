@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { client, urlFor, fetchSanity, QUERIES, calcAvgScore, scoreColor, scoreLabel } from "./lib/sanity.js";
+import { client, urlFor, fetchSanity, QUERIES, calcAvgScore, scoreColor, scoreLabel, submitAudienceReview } from "./lib/sanity.js";
 
 const FALLBACK_LOGO = "/logo.png";
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=1400&q=80";
@@ -284,7 +284,28 @@ const Database = ({ whiskeys, setPage, setSW }) => {
 const Detail = ({ whiskey: w, setPage }) => {
   if(!w)return<div className="pg"><div className="em"><h3>Not found</h3></div></div>;
   const [tab,setTab]=useState("pro");
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({name:"",email:"",aroma:10,palate:30,finish:14,style:7,value:7,notes:""});
+  const [submitting,setSubmitting]=useState(false);
+  const [msg,setMsg]=useState(null);
   const ps=calcAvgScore(w.proReviews);const as=calcAvgScore(w.audienceReviews);
+  const total=form.aroma+form.palate+form.finish+form.style+form.value;
+
+  const handleSubmit=async()=>{
+    if(!form.name.trim()){setMsg({type:'err',text:'Please enter your name'});return;}
+    setSubmitting(true);
+    const result=await submitAudienceReview({whiskeyId:w._id,name:form.name,email:form.email,aroma:form.aroma,palate:form.palate,finish:form.finish,style:form.style,value:form.value,notes:form.notes});
+    setSubmitting(false);
+    if(result.success){
+      setMsg({type:'suc',text:'Thank you! Your review has been submitted and is pending approval by our team.'});
+      setShowForm(false);
+      setForm({name:"",email:"",aroma:10,palate:30,finish:14,style:7,value:7,notes:""});
+    } else {
+      setMsg({type:'err',text:result.error||'Something went wrong.'});
+    }
+    setTimeout(()=>setMsg(null),6000);
+  };
+
   const RC=({review,isPro})=>{const t=review.aroma+review.palate+review.finish+review.style+review.value;return(
     <div className={`pr ${isPro?'':'au'}`}><div className="prh"><div className="prr">
       <div className={`pra ${isPro?'':'au'}`}>{review.reviewerAvatar?<img src={sanImg(review.reviewerAvatar,100)} alt=""/>:"👤"}</div>
@@ -295,11 +316,32 @@ const Detail = ({ whiskey: w, setPage }) => {
   );};
   return(<div className="pg">
     <button className="btn btn-s btn-sm" onClick={()=>setPage("database")} style={{marginBottom:24}}>← Back to Database</button>
+    {msg&&<div className={msg.type}>{msg.text}</div>}
     <div className="dh anim"><div className="di" style={{backgroundImage:`url(${sanImg(w.image,600)})`}}/><div className="df"><h1>{w.name}</h1><div className="dm">{[["Type",w.type],["Region",w.region],["ABV",w.abv],["Price",w.price]].filter(([,v])=>v).map(([l,v])=><div className="dmi" key={l}><span className="dml">{l}</span><span className="dmv">{v}</span></div>)}</div><p>{w.description}</p></div></div>
     <div className="scp anim"><div className="sc pro"><div className="scl pro">NPS Pro Score</div><div className="scn" style={{color:scoreColor(ps)}}>{ps??"—"}</div><div className="scd">{scoreLabel(ps)}</div><div className="scc">{(w.proReviews||[]).length} pro review{(w.proReviews||[]).length!==1?'s':''}</div></div><div className="sc aud"><div className="scl aud">Audience Score</div><div className="scn" style={{color:scoreColor(as)}}>{as??"—"}</div><div className="scd">{scoreLabel(as)}</div><div className="scc">{(w.audienceReviews||[]).length} audience review{(w.audienceReviews||[]).length!==1?'s':''}</div></div></div>
     <div className="tabs"><button className={`tab ${tab==="pro"?"a":""}`} onClick={()=>setTab("pro")}>Pro Reviews ({(w.proReviews||[]).length})</button><button className={`tab ${tab==="audience"?"a":""}`} onClick={()=>setTab("audience")}>Audience ({(w.audienceReviews||[]).length})</button></div>
     {tab==="pro"&&((w.proReviews||[]).length===0?<div className="em"><div className="emi">🎩</div><h3>No pro reviews yet</h3></div>:(w.proReviews||[]).map(r=><RC key={r._id} review={r} isPro/>))}
-    {tab==="audience"&&((w.audienceReviews||[]).length===0?<div className="em"><div className="emi">👥</div><h3>No audience reviews yet</h3></div>:(w.audienceReviews||[]).map(r=><RC key={r._id} review={r} isPro={false}/>))}
+    {tab==="audience"&&(<>
+      {(w.audienceReviews||[]).length===0&&!showForm&&<div className="em"><div className="emi">👥</div><h3>No audience reviews yet</h3><p>Be the first to review this whiskey!</p></div>}
+      {(w.audienceReviews||[]).map(r=><RC key={r._id} review={r} isPro={false}/>)}
+      {!showForm?<div style={{marginTop:24,textAlign:'center'}}><button className="btn btn-pu" onClick={()=>setShowForm(true)}>Write a Review</button></div>:(
+        <div className="rf anim" style={{marginTop:24}}>
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:24,marginBottom:24}}>Review {w.name}</h3>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+            <div className="fg" style={{margin:0}}><label className="fl"><span>Your Name *</span></label><input className="inp" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Enter your name"/></div>
+            <div className="fg" style={{margin:0}}><label className="fl"><span>Email (optional)</span></label><input className="inp" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="your@email.com"/></div>
+          </div>
+          {[["Aroma","aroma",15],["Palate","palate",45],["Finish","finish",20],["Style / Uniqueness","style",10],["Value","value",10]].map(([l,k,m])=><div className="fg" key={k}><div className="fl"><span>{l}</span><span className="flm">Max: {m}</span></div><div className="sr"><input type="range" className="sli" min={0} max={m} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:+e.target.value}))}/><div className="sv">{form[k]}</div></div></div>)}
+          <div className="fg"><div className="fl"><span>Tasting Notes</span></div><textarea className="ta" placeholder="Share your thoughts on this whiskey..." value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
+          <div className="ft"><div className="ftl">Total Score</div><div className="fts" style={{color:scoreColor(total)}}>{total}<span>/100</span></div></div>
+          <p style={{fontSize:13,color:'var(--t2)',marginBottom:16}}>Your review will be submitted for approval by our team before appearing on the site.</p>
+          <div style={{display:'flex',gap:12}}>
+            <button className="btn btn-p" onClick={handleSubmit} disabled={submitting}>{submitting?'Submitting...':'Submit Review'}</button>
+            <button className="btn btn-s" onClick={()=>setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </>)}
   </div>);
 };
 
