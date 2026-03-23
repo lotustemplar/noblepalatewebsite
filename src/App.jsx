@@ -212,7 +212,7 @@ const Home = ({ settings, whiskeys, posts, setPage, setSW, setSB }) => {
     <div className="pg">
       {top.length > 0 && <>
         <div className="sd"><span>Featured Whiskeys</span></div>
-        <div className="sh"><div><h2>Our Top Picks</h2><p>Blog Posts & News</h2><p> Commentary, news and opinions about everything having to do with whiskey culture<</p></div><button className="btn btn-s btn-sm" onClick={()=>setPage("database")}>View All →</button></div>
+        <div className="sh"><div><h2>Our Top Picks</h2><p>Latest expert-reviewed selections</p></div><button className="btn btn-s btn-sm" onClick={()=>setPage("database")}>View All →</button></div>
         <div className="wg">{top.map((w,i)=>{
           const ps=calcAvgScore(w.proReviews);const as=calcAvgScore(w.audienceReviews);
           return(<div key={w._id} className="cd wc anim" style={{animationDelay:`${i*.08}s`}} onClick={()=>setSW(w)}>
