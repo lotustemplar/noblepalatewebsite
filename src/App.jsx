@@ -288,6 +288,7 @@ const Detail = ({ whiskey: w, setPage }) => {
   const [form,setForm]=useState({name:"",email:"",aroma:10,palate:30,finish:14,style:7,value:7,notes:""});
   const [submitting,setSubmitting]=useState(false);
   const [msg,setMsg]=useState(null);
+  const [copied,setCopied]=useState(false);
   const ps=calcAvgScore(w.proReviews);const as=calcAvgScore(w.audienceReviews);
   const total=form.aroma+form.palate+form.finish+form.style+form.value;
 
@@ -319,12 +320,24 @@ const Detail = ({ whiskey: w, setPage }) => {
     {msg&&<div className={msg.type}>{msg.text}</div>}
     <div className="dh anim"><div className="di" style={{backgroundImage:`url(${sanImg(w.image,600)})`}}/><div className="df"><h1>{w.name}</h1><div className="dm">{[["Type",w.type],["Region",w.region],["ABV",w.abv],["Price",w.price]].filter(([,v])=>v).map(([l,v])=><div className="dmi" key={l}><span className="dml">{l}</span><span className="dmv">{v}</span></div>)}</div><p>{w.description}</p></div></div>
     <div className="scp anim"><div className="sc pro"><div className="scl pro">NPS Pro Score</div><div className="scn" style={{color:scoreColor(ps)}}>{ps??"—"}</div><div className="scd">{scoreLabel(ps)}</div><div className="scc">{(w.proReviews||[]).length} pro review{(w.proReviews||[]).length!==1?'s':''}</div></div><div className="sc aud"><div className="scl aud">Audience Score</div><div className="scn" style={{color:scoreColor(as)}}>{as??"—"}</div><div className="scd">{scoreLabel(as)}</div><div className="scc">{(w.audienceReviews||[]).length} audience review{(w.audienceReviews||[]).length!==1?'s':''}</div></div></div>
+    
+    {/* Write Review + Share buttons */}
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16,marginBottom:32}}>
+      <button className="btn btn-pu" onClick={()=>{setShowForm(true);setTab("audience");}}>✍ Write a Review</button>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <span style={{fontSize:12,color:'var(--t3)',marginRight:4}}>Share:</span>
+        <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${w.name} on Noble Palate Society!${ps ? ` Pro Score: ${ps}/100` : ''}`)}&url=${encodeURIComponent(window.location.origin)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--gold)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>𝕏</button>
+        <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--purpL)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>Facebook</button>
+        <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin} — ${w.name} on Noble Palate Society`);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color: copied?'var(--green)':'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}}>{copied?'Copied!':'Copy Link'}</button>
+      </div>
+    </div>
+
     <div className="tabs"><button className={`tab ${tab==="pro"?"a":""}`} onClick={()=>setTab("pro")}>Pro Reviews ({(w.proReviews||[]).length})</button><button className={`tab ${tab==="audience"?"a":""}`} onClick={()=>setTab("audience")}>Audience ({(w.audienceReviews||[]).length})</button></div>
     {tab==="pro"&&((w.proReviews||[]).length===0?<div className="em"><div className="emi">🎩</div><h3>No pro reviews yet</h3></div>:(w.proReviews||[]).map(r=><RC key={r._id} review={r} isPro/>))}
     {tab==="audience"&&(<>
       {(w.audienceReviews||[]).length===0&&!showForm&&<div className="em"><div className="emi">👥</div><h3>No audience reviews yet</h3><p>Be the first to review this whiskey!</p></div>}
       {(w.audienceReviews||[]).map(r=><RC key={r._id} review={r} isPro={false}/>)}
-      {!showForm?<div style={{marginTop:24,textAlign:'center'}}><button className="btn btn-pu" onClick={()=>setShowForm(true)}>Write a Review</button></div>:(
+      {showForm&&(
         <div className="rf anim" style={{marginTop:24}}>
           <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:24,marginBottom:24}}>Review {w.name}</h3>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
