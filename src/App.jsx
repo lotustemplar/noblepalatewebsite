@@ -387,12 +387,20 @@ const BlogDet = ({ post, setPage, setSW, whiskeys }) => {
     if(typeof body === 'string') return <p>{body}</p>;
     return body.map((block,i) => {
       if(block._type==='image') return <div key={i} style={{margin:'24px 0'}}><img src={sanImg(block,800)} alt={block.caption||''} style={{width:'100%',borderRadius:8}}/>{block.caption&&<p style={{fontSize:13,color:'var(--t3)',marginTop:8,textAlign:'center'}}>{block.caption}</p>}</div>;
+      if(block._type==='htmlEmbed' && block.html) return <div key={i} style={{margin:'32px 0',borderRadius:12,overflow:'hidden'}} dangerouslySetInnerHTML={{__html: block.html}}/>;
       if(block._type==='block'){
-        const text = (block.children||[]).map(c=>c.text).join('');
-        if(block.style==='h2') return <h2 key={i} style={{fontFamily:"'Playfair Display',serif",fontSize:28,margin:'32px 0 16px'}}>{text}</h2>;
-        if(block.style==='h3') return <h3 key={i} style={{fontFamily:"'Playfair Display',serif",fontSize:22,margin:'24px 0 12px'}}>{text}</h3>;
-        if(block.style==='blockquote') return <blockquote key={i} style={{borderLeft:'3px solid var(--purpD)',paddingLeft:16,fontStyle:'italic',color:'var(--t2)',margin:'20px 0'}}>{text}</blockquote>;
-        return <p key={i} style={{marginBottom:16}}>{text}</p>;
+        const children = (block.children||[]).map((child, ci) => {
+          let text = child.text;
+          if(!text) return null;
+          const marks = child.marks || [];
+          if(marks.includes('strong')) text = <strong key={ci}>{text}</strong>;
+          if(marks.includes('em')) text = <em key={ci}>{text}</em>;
+          return text;
+        });
+        if(block.style==='h2') return <h2 key={i} style={{fontFamily:"'Playfair Display',serif",fontSize:28,margin:'32px 0 16px',color:'var(--t1)'}}>{children}</h2>;
+        if(block.style==='h3') return <h3 key={i} style={{fontFamily:"'Playfair Display',serif",fontSize:22,margin:'24px 0 12px',color:'var(--t1)'}}>{children}</h3>;
+        if(block.style==='blockquote') return <blockquote key={i} style={{borderLeft:'3px solid var(--purpD)',paddingLeft:16,fontStyle:'italic',color:'var(--t2)',margin:'20px 0'}}>{children}</blockquote>;
+        return <p key={i} style={{marginBottom:16}}>{children}</p>;
       }
       return null;
     });
