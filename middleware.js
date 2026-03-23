@@ -1,115 +1,95 @@
-import { next } from '@vercel/edge';
+const SANITY_URL = 'https://utqvc7uf.apicdn.sanity.io/v2026-03-22/data/query/production';
 
-const SANITY_PROJECT = 'utqvc7uf';
-const SANITY_DATASET = 'production';
-const API_VERSION = '2026-03-22';
-
-const CRAWLERS = /facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegrambot|discordbot|pinterest|imessage|iframely|embedly/i;
-
-function sanityImageUrl(ref) {
-  if (!ref) return null;
-  // Convert sanity image ref to URL: image-abc123-800x600-jpg → abc123-800x600.jpg
-  const parts = ref.replace('image-', '').split('-');
+function imageUrl(ref) {
+  if (!ref?.asset?._ref) return 'https://noblepalate.com/logo.png';
+  const parts = ref.asset._ref.replace('image-', '').split('-');
   const ext = parts.pop();
   const id = parts.join('-');
-  return `https://cdn.sanity.io/images/${SANITY_PROJECT}/${SANITY_DATASET}/${id}.${ext}?w=1200&h=630&fit=crop`;
+  return `https://cdn.sanity.io/images/utqvc7uf/production/${id}.${ext}`;
 }
 
-async function fetchFromSanity(query, params = {}) {
-  let url = `https://${SANITY_PROJECT}.api.sanity.io/v${API_VERSION}/data/query/${SANITY_DATASET}?query=${encodeURIComponent(query)}`;
-  for (const [key, val] of Object.entries(params)) {
-    url += `&$${key}="${encodeURIComponent(val)}"`;
-  }
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.result;
+function esc(str) {
+  return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+function buildHtml(title, description, image, url) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <title>${esc(title)}</title>
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(description)}" />
+  <meta property="og:image" content="${image}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Noble Palate Society" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(description)}" />
+  <meta name="twitter:image" content="${image}" />
+  <meta http-equiv="refresh" content="0;url=${url}" />
+</head>
+<body>Redirecting...</body>
+</html>`;
+}
+
+const BOT_UA = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Pinterest|Discordbot/i;
 
 export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || '';
-  const url = new URL(request.url);
-  const path = url.pathname;
-
-  // Only intercept for social media crawlers
-  if (!CRAWLERS.test(ua)) {
-    return next();
+  
+  if (!BOT_UA.test(ua)) {
+    return;
   }
 
-  let title = 'Noble Palate Society';
-  let description = 'Chasing Perfection, One Pour at a Time. Expert whiskey reviews and curated tastings.';
-  let image = null;
-  let pageUrl = url.href;
+  const url = new URL(request.url);
+  const path = url.pathname;
 
   try {
     if (path.startsWith('/whiskey/')) {
       const slug = path.replace('/whiskey/', '');
-      const whiskey = await fetchFromSanity(
-        `*[_type == "whiskey" && slug.current == $slug][0]{name, description, "imageRef": image.asset._ref}`,
-        { slug }
-      );
-      if (whiskey) {
-        title = `${whiskey.name} — Noble Palate Society`;
-        description = whiskey.description || description;
-        image = sanityImageUrl(whiskey.imageRef);
+      const query = encodeURIComponent(`*[_type == "whiskey" && slug.current == "${slug}"][0]{name, description, image}`);
+      const res = await fetch(`${SANITY_URL}?query=${query}`);
+      const data = await res.json();
+      const w = data.result;
+      if (w) {
+        return new Response(
+          buildHtml(
+            `${w.name} | Noble Palate Society`,
+            (w.description || '').substring(0, 200),
+            imageUrl(w.image),
+            url.toString()
+          ),
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       }
-    } else if (path.startsWith('/blog/')) {
+    }
+
+    if (path.startsWith('/blog/')) {
       const slug = path.replace('/blog/', '');
-      const post = await fetchFromSanity(
-        `*[_type == "blogPost" && slug.current == $slug][0]{title, excerpt, "imageRef": heroImage.asset._ref}`,
-        { slug }
-      );
-      if (post) {
-        title = `${post.title} — Noble Palate Society`;
-        description = post.excerpt || description;
-        image = sanityImageUrl(post.imageRef);
-      }
-    } else {
-      // Home page - get site settings
-      const settings = await fetchFromSanity(
-        `*[_type == "siteSettings"][0]{"imageRef": logo.asset._ref, tagline}`
-      );
-      if (settings) {
-        description = settings.tagline || description;
-        image = sanityImageUrl(settings.imageRef);
+      const query = encodeURIComponent(`*[_type == "blogPost" && slug.current == "${slug}"][0]{title, excerpt, heroImage}`);
+      const res = await fetch(`${SANITY_URL}?query=${query}`);
+      const data = await res.json();
+      const p = data.result;
+      if (p) {
+        return new Response(
+          buildHtml(
+            `${p.title} | Noble Palate Society`,
+            (p.excerpt || '').substring(0, 200),
+            imageUrl(p.heroImage),
+            url.toString()
+          ),
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       }
     }
   } catch (e) {
-    // Fall through with defaults
+    console.error('Middleware error:', e);
   }
 
-  // If no image found, use a default
-  if (!image) {
-    image = `${url.origin}/logo.png`;
-  }
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>${title}</title>
-  <meta name="description" content="${description}">
-  <meta property="og:title" content="${title}">
-  <meta property="og:description" content="${description}">
-  <meta property="og:image" content="${image}">
-  <meta property="og:url" content="${pageUrl}">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Noble Palate Society">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${title}">
-  <meta name="twitter:description" content="${description}">
-  <meta name="twitter:image" content="${image}">
-</head>
-<body>
-  <p>${title}</p>
-  <p>${description}</p>
-</body>
-</html>`;
-
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html' },
-  });
+  return;
 }
 
 export const config = {
-  matcher: ['/', '/whiskey/:path*', '/blog/:path*', '/database'],
+  matcher: ['/whiskey/:path*', '/blog/:path*'],
 };
