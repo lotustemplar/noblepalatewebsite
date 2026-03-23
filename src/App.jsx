@@ -326,9 +326,9 @@ const Detail = ({ whiskey: w, setPage }) => {
       <button className="btn btn-pu" onClick={()=>{setShowForm(true);setTab("audience");}}>✍ Write a Review</button>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <span style={{fontSize:12,color:'var(--t3)',marginRight:4}}>Share:</span>
-        <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${w.name} on Noble Palate Society!${ps ? ` Pro Score: ${ps}/100` : ''}`)}&url=${encodeURIComponent(window.location.origin)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--gold)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>𝕏</button>
-        <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--purpL)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>Facebook</button>
-        <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin} — ${w.name} on Noble Palate Society`);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color: copied?'var(--green)':'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}}>{copied?'Copied!':'Copy Link'}</button>
+        <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${w.name} on Noble Palate Society!${ps ? ` Pro Score: ${ps}/100` : ''}`)}&url=${encodeURIComponent(`${window.location.origin}/whiskey/${w.slug?.current||''}`)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--gold)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>𝕏</button>
+        <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/whiskey/${w.slug?.current||''}`)}`,`_blank`)} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color:'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}} onMouseEnter={e=>e.target.style.color='var(--purpL)'} onMouseLeave={e=>e.target.style.color='var(--t2)'}>Facebook</button>
+        <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/whiskey/${w.slug?.current||''}`);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{background:'var(--bg3)',border:'1px solid var(--brd)',borderRadius:6,padding:'6px 12px',cursor:'pointer',color: copied?'var(--green)':'var(--t2)',fontSize:13,fontFamily:'Outfit,sans-serif',transition:'var(--tr)'}}>{copied?'Copied!':'Copy Link'}</button>
       </div>
     </div>
 
@@ -434,15 +434,58 @@ const BlogDet = ({ post, setPage, setSW, whiskeys }) => {
   </div></div>);
 };
 
+// ─── URL Router Helper ───
+function getRoute() {
+  const path = window.location.pathname;
+  if (path.startsWith('/whiskey/')) return { page: 'detail', slug: path.replace('/whiskey/', '') };
+  if (path.startsWith('/blog/')) return { page: 'blogdet', slug: path.replace('/blog/', '') };
+  if (path === '/database') return { page: 'database' };
+  if (path === '/blog') return { page: 'blog' };
+  return { page: 'home' };
+}
+
+function navigate(path) {
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new Event('popstate'));
+}
+
 // ─── Main App ───
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [route, setRoute] = useState(getRoute());
   const [settings, setSettings] = useState(null);
   const [whiskeys, setWhiskeys] = useState(null);
   const [posts, setPosts] = useState(null);
   const [selW, setSelW] = useState(null);
   const [selB, setSelB] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const page = route.page;
+
+  // Listen for URL changes
+  useEffect(() => {
+    const handlePop = () => setRoute(getRoute());
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+
+  // Navigation helper that updates URL
+  const setPage = useCallback((p, data) => {
+    if (p === 'detail' && data?.slug?.current) {
+      navigate(`/whiskey/${data.slug.current}`);
+    } else if (p === 'blogdet' && data?.slug?.current) {
+      navigate(`/blog/${data.slug.current}`);
+    } else if (p === 'database') {
+      navigate('/database');
+    } else if (p === 'blog') {
+      navigate('/blog');
+    } else {
+      navigate('/');
+    }
+  }, []);
+
+  // Wrapper functions for setting selected items + navigating
+  const goWhiskey = useCallback((w) => { setSelW(w); setPage('detail', w); }, [setPage]);
+  const goBlog = useCallback((b) => { setSelB(b); setPage('blogdet', b); }, [setPage]);
 
   useEffect(() => {
     Promise.all([
@@ -457,7 +500,21 @@ export default function App() {
     });
   }, []);
 
-  useEffect(() => { window.scrollTo?.({ top: 0, behavior: 'smooth' }); }, [page]);
+  // Resolve slug-based routes once data loads
+  useEffect(() => {
+    if (!whiskeys || !posts) return;
+    const r = getRoute();
+    if (r.page === 'detail' && r.slug && !selW) {
+      const match = whiskeys.find(w => w.slug?.current === r.slug);
+      if (match) setSelW(match);
+    }
+    if (r.page === 'blogdet' && r.slug && !selB) {
+      const match = posts.find(p => p.slug?.current === r.slug);
+      if (match) setSelB(match);
+    }
+  }, [whiskeys, posts, route]);
+
+  useEffect(() => { window.scrollTo?.({ top: 0, behavior: 'smooth' }); }, [route]);
 
   const logoSrc = settings?.logo ? sanImg(settings.logo, 200) : FALLBACK_LOGO;
 
@@ -474,11 +531,11 @@ export default function App() {
   return (
     <div className="N"><style>{CSS}</style>
       <Header settings={settings} page={page} setPage={setPage}/>
-      {page==="home"&&<Home settings={settings} whiskeys={whiskeys} posts={posts} setPage={setPage} setSW={setSelW} setSB={setSelB}/>}
-      {page==="database"&&<Database whiskeys={whiskeys} setPage={setPage} setSW={setSelW}/>}
+      {page==="home"&&<Home settings={settings} whiskeys={whiskeys} posts={posts} setPage={setPage} setSW={goWhiskey} setSB={goBlog}/>}
+      {page==="database"&&<Database whiskeys={whiskeys} setPage={setPage} setSW={goWhiskey}/>}
       {page==="detail"&&<Detail whiskey={selW} setPage={setPage}/>}
-      {page==="blog"&&<Blog posts={posts} setPage={setPage} setSB={setSelB}/>}
-      {page==="blogdet"&&<BlogDet post={selB} setPage={setPage} setSW={setSelW} whiskeys={whiskeys}/>}
+      {page==="blog"&&<Blog posts={posts} setPage={setPage} setSB={goBlog}/>}
+      {page==="blogdet"&&<BlogDet post={selB} setPage={setPage} setSW={goWhiskey} whiskeys={whiskeys}/>}
       <footer className="ftr">
         <img src={logoSrc} alt="NPS"/>
         <div className="ftr-b">NoblePalateSociety.com</div>
